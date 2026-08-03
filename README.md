@@ -1,7 +1,7 @@
-﻿# CY376 Blue Team Project: Post-Incident Root Cause Analysis (RCA) System
+﻿# CY376 Blue Team Project: Post-Incident Root Cause Analysis (RCA) System and Lessons-learned reporting
 
-**Name:** [Your Name]
-**Index Number:** [Your Index Number]
+**Name:** Boateng Yaw Opoku
+**Index Number:** FCM.41.018.107.23
 **Course:** CY376 - Network Monitoring, Security and Auditing
 **Track:** Blue Team
 **Date:** August 2026
