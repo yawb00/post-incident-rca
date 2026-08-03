@@ -36,5 +36,16 @@
   "corrective_actions": [
     {"finding": "47-day unpatched critical vulnerability exploited", "action": "Implement enforced patch SLA tied to CVSS score, with automated tracking", "owner": "Vulnerability Management", "priority": "High", "status": "Open"},
     {"finding": "No WAF rule to virtually patch known CVE during exposure window", "action": "Establish a virtual-patching process to deploy WAF/IPS rules within 24-48 hours of CVE disclosure", "owner": "Network Security Team", "priority": "High", "status": "Open"}
-  ]
+  ],
+  "what_worked_well": [
+    "SIEM correctly flagged the anomalous outbound connection as high-priority immediately.",
+    "SOC analyst triaged and escalated within SLA, unlike the previous incident.",
+    "Containment and eradication were completed within 2 hours of detection."
+  ],
+  "lessons_learned_meeting": {
+    "date": "2026-07-22",
+    "facilitator": "SOC Manager",
+    "attendees": ["SOC Analyst (shift lead)", "IR Team Lead", "Vulnerability Management", "Network Security Team"],
+    "key_takeaway": "Detection and response performance was strong once the exploit occurred, which validates recent SLA improvements. The real gap is upstream: patch management timelines and lack of virtual patching left a 47-day exposure window that should not have existed."
+  }
 }

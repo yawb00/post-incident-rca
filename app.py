@@ -1,4 +1,4 @@
-from flask import Flask, render_template_string
+from flask import Flask, render_template_string, Response
 import json, os
 from datetime import datetime
 from collections import Counter
@@ -43,10 +43,62 @@ def calculate_metrics(timeline):
         metrics["Time to Recover"] = str(parse_ts(by_event["Recovery"]["timestamp"]) - start)
     return metrics
 
-# --- Feature 1: RCA trigger logic ---
+# --- Feature: RCA trigger logic ---
 def rca_required(severity):
     """Mirrors a real SOC trigger policy: High/Medium severity mandates a full RCA."""
     return severity in ("High", "Medium")
+
+# --- Feature: Markdown report generation ---
+def generate_markdown_report(inc, timeline, metrics):
+    lines = []
+    lines.append(f"# Post-Incident Root Cause Analysis Report")
+    lines.append(f"\n**Incident ID:** {inc['incident_id']}")
+    lines.append(f"**Classification:** {inc['classification']}")
+    lines.append(f"**Severity:** {inc['severity']}\n")
+
+    lines.append("## Key Metrics")
+    for k, v in metrics.items():
+        lines.append(f"- **{k}:** {v}")
+    lines.append("")
+
+    lines.append("## Incident Timeline")
+    lines.append("| Time (UTC) | Elapsed | Source | Event | Detail |")
+    lines.append("|---|---|---|---|---|")
+    for e in timeline:
+        time_only = e['timestamp'].split('T')[1].replace('Z', '')
+        lines.append(f"| {time_only} | {e['elapsed']} | {e['source']} | {e['event']} | {e['detail']} |")
+    lines.append("")
+
+    lines.append("## Root Cause Analysis (5 Whys)")
+    for category, data in inc["root_cause_analysis"].items():
+        lines.append(f"\n### {category}")
+        lines.append(f"**What happened:** {data['what_happened']}\n")
+        for line in data["chain"]:
+            lines.append(f"- {line}")
+    lines.append("")
+
+    lines.append("## Corrective and Preventive Actions")
+    lines.append("| Finding | Action | Owner | Priority | Status |")
+    lines.append("|---|---|---|---|---|")
+    for a in inc["corrective_actions"]:
+        lines.append(f"| {a['finding']} | {a['action']} | {a['owner']} | {a['priority']} | {a['status']} |")
+    lines.append("")
+
+    if "what_worked_well" in inc:
+        lines.append("## What Worked Well")
+        for item in inc["what_worked_well"]:
+            lines.append(f"- {item}")
+        lines.append("")
+
+    if "lessons_learned_meeting" in inc:
+        llm = inc["lessons_learned_meeting"]
+        lines.append("## Lessons-Learned Meeting")
+        lines.append(f"**Date:** {llm['date']}")
+        lines.append(f"**Facilitator:** {llm['facilitator']}")
+        lines.append(f"**Attendees:** {', '.join(llm['attendees'])}\n")
+        lines.append(f"**Key Takeaway:** {llm['key_takeaway']}")
+
+    return "\n".join(lines)
 
 # --- Styling ---
 BASE_STYLE = """
@@ -69,6 +121,11 @@ BASE_STYLE = """
   .status-inprogress { background: #78350f; color: #fcd34d; }
   .status-closed { background: #14532d; color: #86efac; }
   .rca-flag { background: #164e63; color: #67e8f9; padding: 8px 12px; border-radius: 6px; display: inline-block; margin: 10px 0; }
+  .download-btn { float:right; background:#0284c7; color:white; padding:8px 16px; border-radius:6px; font-weight:bold; }
+  .download-btn:hover { background:#0369a1; }
+  .worked-well li { color:#86efac; margin-bottom:6px; }
+  .llm-card { background:#1e293b; border-left:4px solid #38bdf8; padding:15px 20px; border-radius:8px; }
+  .llm-meta { color:#94a3b8; font-size:13px; margin-bottom:10px; }
 </style>
 """
 
@@ -122,10 +179,28 @@ def incident_detail(incident_id):
     if rca_required(inc["severity"]):
         trigger_banner = f'<div class="rca-flag">This incident met policy threshold (Severity: {inc["severity"]}) — full RCA automatically required.</div>'
 
+    worked_well_html = ""
+    if "what_worked_well" in inc:
+        items = "".join(f"<li>{item}</li>" for item in inc["what_worked_well"])
+        worked_well_html = f'<h2>What Worked Well</h2><div class="card"><ul class="worked-well">{items}</ul></div>'
+
+    llm_html = ""
+    if "lessons_learned_meeting" in inc:
+        llm = inc["lessons_learned_meeting"]
+        attendees = ", ".join(llm["attendees"])
+        llm_html = f"""
+        <h2>Lessons-Learned Meeting</h2>
+        <div class="llm-card">
+            <div class="llm-meta"><strong>Date:</strong> {llm['date']} &nbsp;|&nbsp; <strong>Facilitator:</strong> {llm['facilitator']}</div>
+            <div class="llm-meta"><strong>Attendees:</strong> {attendees}</div>
+            <p><strong>Key Takeaway:</strong> {llm['key_takeaway']}</p>
+        </div>"""
+
     return render_template_string(f"""
     <html><head><title>{incident_id}</title>{BASE_STYLE}</head>
     <body>{nav()}
       <a href="/">&larr; Back to all incidents</a>
+      <a href="/incident/{incident_id}/report" class="download-btn">Download RCA Report</a>
       <h1>{incident_id}</h1>
       <p>{inc['classification']}</p>
       {trigger_banner}
@@ -137,10 +212,25 @@ def incident_detail(incident_id):
       {whys_html}
       <h2>Corrective Actions</h2>
       <table><tr><th>Finding</th><th>Action</th><th>Owner</th><th>Priority</th><th>Status</th></tr>{actions_rows}</table>
+      {worked_well_html}
+      {llm_html}
     </body></html>
     """)
 
-# --- Feature 4: Trends page ---
+@app.route("/incident/<incident_id>/report")
+def download_report(incident_id):
+    inc = load_incident(incident_id)
+    timeline = build_timeline(inc["logs"])
+    metrics = calculate_metrics(timeline)
+    report_text = generate_markdown_report(inc, timeline, metrics)
+
+    return Response(
+        report_text,
+        mimetype="text/markdown",
+        headers={"Content-Disposition": f"attachment;filename={incident_id}_RCA_Report.md"}
+    )
+
+# --- Trends page ---
 @app.route("/trends")
 def trends():
     incidents = load_all_incidents()

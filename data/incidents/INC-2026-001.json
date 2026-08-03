@@ -49,5 +49,16 @@
     {"finding": "Outdated email filter rules allowed phishing delivery", "action": "Implement monthly email filter rule review and threat intel feed integration", "owner": "Email Security Team", "priority": "High", "status": "In Progress"},
     {"finding": "EDR alert threshold too high, missed malicious PowerShell execution", "action": "Re-tune EDR detection rules and validate against MITRE ATT&CK T1059 using atomic tests", "owner": "Detection Engineering", "priority": "High", "status": "Open"},
     {"finding": "86-minute SLA breach before triage due to alert backlog", "action": "Implement automated SLA breach escalation and review analyst staffing vs. alert volume", "owner": "SOC Manager", "priority": "Medium", "status": "Open"}
-  ]
+  ],
+  "what_worked_well": [
+    "EDR correctly logged network connections and lateral movement, providing full visibility once investigated.",
+    "Containment and eradication, once triggered, were executed efficiently (~2.5 hours from containment to eradication).",
+    "IR team followed the documented containment playbook without deviation."
+  ],
+  "lessons_learned_meeting": {
+    "date": "2026-07-18",
+    "facilitator": "SOC Manager",
+    "attendees": ["SOC Analyst (shift lead)", "IR Team Lead", "Email Security Team", "Detection Engineering"],
+    "key_takeaway": "Detection tooling and playbooks worked as designed once triggered, but the incident exposed two upstream gaps (stale filter rules, high alert threshold) and one resourcing gap (triage backlog) that let the intrusion progress further than it should have before response began."
+  }
 }
