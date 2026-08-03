@@ -1,0 +1,53 @@
+{
+  "incident_id": "INC-2026-001",
+  "severity": "High",
+  "classification": "Phishing-initiated intrusion with lateral movement",
+  "logs": [
+    {"timestamp": "2026-07-14T08:12:03Z", "source": "Email Gateway", "event": "Email delivered", "detail": "Phishing email from spoofed domain delivered to jdoe@corp.local. SPF=softfail, not blocked (filter rule outdated)."},
+    {"timestamp": "2026-07-14T08:14:41Z", "source": "Endpoint", "event": "User click", "detail": "User clicked link to lookalike login page."},
+    {"timestamp": "2026-07-14T08:14:55Z", "source": "Endpoint", "event": "Credential entry", "detail": "Credentials submitted to external domain. No DLP rule for this pattern."},
+    {"timestamp": "2026-07-14T08:16:10Z", "source": "EDR", "event": "Process execution", "detail": "powershell.exe spawned with encoded command. Alert threshold too high, no alert fired."},
+    {"timestamp": "2026-07-14T08:16:12Z", "source": "EDR", "event": "Network connection", "detail": "Outbound connection to unrecognized external IP on port 443."},
+    {"timestamp": "2026-07-14T08:22:37Z", "source": "SIEM", "event": "Correlation alert", "detail": "Low-priority alert generated, routed to triage queue with 4-hour SLA."},
+    {"timestamp": "2026-07-14T09:05:00Z", "source": "EDR", "event": "Lateral movement", "detail": "SMB authentication from workstation to file server using stolen credentials."},
+    {"timestamp": "2026-07-14T10:41:19Z", "source": "SOC Analyst", "event": "Manual triage", "detail": "Alert reviewed 86 minutes after SLA breach due to 40+ item backlog. Escalated to IR."},
+    {"timestamp": "2026-07-14T10:52:00Z", "source": "IR Team", "event": "Containment", "detail": "Affected hosts isolated from network."},
+    {"timestamp": "2026-07-14T13:15:00Z", "source": "IR Team", "event": "Eradication", "detail": "Malicious artifacts removed, hosts reimaged."},
+    {"timestamp": "2026-07-14T15:00:00Z", "source": "IR Team", "event": "Recovery", "detail": "Hosts validated and returned to production."}
+  ],
+  "root_cause_analysis": {
+    "Initial Access": {
+      "what_happened": "Phishing email was delivered and not blocked.",
+      "chain": [
+        "Why did the attacker gain access? -> User clicked a phishing link and submitted credentials.",
+        "Why did the phishing email reach the user? -> Email gateway did not block it (SPF softfail, not blocked).",
+        "Why wasn't it blocked despite the SPF failure? -> The filtering rule was outdated.",
+        "Why was the filtering rule outdated? -> No process to review/update filter rules on a schedule.",
+        "Root cause: Lack of a recurring email filter rule review process."
+      ]
+    },
+    "Detection Delay": {
+      "what_happened": "Malicious PowerShell execution did not trigger an alert.",
+      "chain": [
+        "Why wasn't the malicious process flagged immediately? -> EDR alert threshold was set too high.",
+        "Why was the threshold set too high? -> Tuned previously to reduce alert fatigue from false positives.",
+        "Why did that tuning go unreviewed? -> No periodic detection rule validation process.",
+        "Root cause: Detection rules tuned for noise reduction without a periodic re-validation process against real TTPs."
+      ]
+    },
+    "Response Delay": {
+      "what_happened": "86-minute delay between SLA breach and analyst triage.",
+      "chain": [
+        "Why was the alert not triaged within SLA? -> Analyst had a backlog of 40+ open alerts.",
+        "Why was the backlog that large? -> Insufficient staffing/alert volume ratio during that shift.",
+        "Why wasn't this caught earlier? -> No real-time SLA breach escalation/alerting mechanism.",
+        "Root cause: No automated SLA breach escalation combined with analyst-to-alert-volume imbalance."
+      ]
+    }
+  },
+  "corrective_actions": [
+    {"finding": "Outdated email filter rules allowed phishing delivery", "action": "Implement monthly email filter rule review and threat intel feed integration", "owner": "Email Security Team", "priority": "High", "status": "In Progress"},
+    {"finding": "EDR alert threshold too high, missed malicious PowerShell execution", "action": "Re-tune EDR detection rules and validate against MITRE ATT&CK T1059 using atomic tests", "owner": "Detection Engineering", "priority": "High", "status": "Open"},
+    {"finding": "86-minute SLA breach before triage due to alert backlog", "action": "Implement automated SLA breach escalation and review analyst staffing vs. alert volume", "owner": "SOC Manager", "priority": "Medium", "status": "Open"}
+  ]
+}

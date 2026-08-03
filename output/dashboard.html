@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>RCA Dashboard - INC-2026-001</title>
+<style>
+  body { font-family: Arial, sans-serif; background: #0f172a; color: #e2e8f0; margin: 0; padding: 30px; }
+  h1 { color: #38bdf8; }
+  h2 { color: #38bdf8; border-bottom: 1px solid #334155; padding-bottom: 8px; margin-top: 40px; }
+  h3 { color: #fbbf24; }
+  .metrics { display: flex; gap: 20px; flex-wrap: wrap; margin: 20px 0; }
+  .metric-card { background: #1e293b; padding: 20px; border-radius: 8px; min-width: 160px; text-align: center; }
+  .metric-value { font-size: 24px; font-weight: bold; color: #38bdf8; }
+  .metric-label { font-size: 12px; color: #94a3b8; margin-top: 5px; }
+  table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+  th, td { border: 1px solid #334155; padding: 8px 10px; text-align: left; font-size: 13px; }
+  th { background: #1e293b; color: #38bdf8; }
+  tr:nth-child(even) { background: #172033; }
+  .why-block { background: #1e293b; padding: 15px 20px; border-radius: 8px; margin-bottom: 15px; }
+  .priority-high { color: #f87171; font-weight: bold; }
+  .priority-medium { color: #fbbf24; font-weight: bold; }
+</style>
+</head>
+<body>
+  <h1>Post-Incident RCA Dashboard</h1>
+  <p><strong>Incident:</strong> INC-2026-001 &nbsp;|&nbsp; <strong>Classification:</strong> Phishing-initiated intrusion &nbsp;|&nbsp; <strong>Severity:</strong> High</p>
+
+  <h2>Key Metrics</h2>
+  <div class="metrics"><div class="metric-card"><div class="metric-value">0:10:34</div><div class="metric-label">Time to Detect (TTD)</div></div><div class="metric-card"><div class="metric-value">2:18:42</div><div class="metric-label">Time to Triage (alert -> analyst review)</div></div><div class="metric-card"><div class="metric-value">2:39:57</div><div class="metric-label">Time to Contain (from initial access)</div></div><div class="metric-card"><div class="metric-value">6:47:57</div><div class="metric-label">Time to Recover (from initial access)</div></div></div>
+
+  <h2>Incident Timeline</h2>
+  <table>
+    <tr><th>Time</th><th>Elapsed</th><th>Source</th><th>Event</th><th>Detail</th></tr>
+    <tr><td>08:12:03</td><td>0:00:00</td><td>Email Gateway</td><td>Email delivered</td><td>Phishing email from spoofed domain delivered to jdoe@corp.local. SPF=softfail, not blocked (filter rule outdated).</td></tr><tr><td>08:14:41</td><td>0:02:38</td><td>Endpoint</td><td>User click</td><td>User clicked link to lookalike login page.</td></tr><tr><td>08:14:55</td><td>0:02:52</td><td>Endpoint</td><td>Credential entry</td><td>Credentials submitted to external domain. No DLP rule for this pattern.</td></tr><tr><td>08:16:10</td><td>0:04:07</td><td>EDR</td><td>Process execution</td><td>powershell.exe spawned with encoded command. Alert threshold too high, no alert fired.</td></tr><tr><td>08:16:12</td><td>0:04:09</td><td>EDR</td><td>Network connection</td><td>Outbound connection to unrecognized external IP on port 443.</td></tr><tr><td>08:22:37</td><td>0:10:34</td><td>SIEM</td><td>Correlation alert</td><td>Low-priority alert generated, routed to triage queue with 4-hour SLA.</td></tr><tr><td>09:05:00</td><td>0:52:57</td><td>EDR</td><td>Lateral movement</td><td>SMB authentication from workstation to file server using stolen credentials.</td></tr><tr><td>10:41:19</td><td>2:29:16</td><td>SOC Analyst</td><td>Manual triage</td><td>Alert reviewed 86 minutes after SLA breach due to 40+ item backlog. Escalated to IR.</td></tr><tr><td>10:52:00</td><td>2:39:57</td><td>IR Team</td><td>Containment</td><td>Affected hosts isolated from network.</td></tr><tr><td>13:15:00</td><td>5:02:57</td><td>IR Team</td><td>Eradication</td><td>Malicious artifacts removed, hosts reimaged.</td></tr><tr><td>15:00:00</td><td>6:47:57</td><td>IR Team</td><td>Recovery</td><td>Hosts validated and returned to production.</td></tr>
+  </table>
+
+  <h2>Root Cause Analysis (5 Whys)</h2>
+  
+        <div class="why-block">
+            <h3>Initial Access</h3>
+            <p><em>Phishing email was delivered and not blocked.</em></p>
+            <ul><li>Why did the attacker gain access? -> User clicked a phishing link and submitted credentials.</li><li>Why did the phishing email reach the user? -> Email gateway did not block it (SPF softfail, not blocked).</li><li>Why wasn't it blocked despite the SPF failure? -> The filtering rule was outdated.</li><li>Why was the filtering rule outdated? -> No process to review/update filter rules on a schedule.</li><li>Root cause: Lack of a recurring email filter rule review process.</li></ul>
+        </div>
+        <div class="why-block">
+            <h3>Detection Delay</h3>
+            <p><em>Malicious PowerShell execution did not trigger an alert.</em></p>
+            <ul><li>Why wasn't the malicious process flagged immediately? -> EDR alert threshold was set too high.</li><li>Why was the threshold set too high? -> Tuned previously to reduce alert fatigue from false positives.</li><li>Why did that tuning go unreviewed? -> No periodic detection rule validation process.</li><li>Root cause: Detection rules tuned for noise reduction without a periodic re-validation process against real TTPs.</li></ul>
+        </div>
+        <div class="why-block">
+            <h3>Response Delay</h3>
+            <p><em>86-minute delay between SLA breach and analyst triage.</em></p>
+            <ul><li>Why was the alert not triaged within SLA? -> Analyst had a backlog of 40+ open alerts.</li><li>Why was the backlog that large? -> Insufficient staffing/alert volume ratio during that shift.</li><li>Why wasn't this caught earlier? -> No real-time SLA breach escalation/alerting mechanism.</li><li>Root cause: No automated SLA breach escalation combined with analyst-to-alert-volume imbalance.</li></ul>
+        </div>
+
+  <h2>Corrective Actions</h2>
+  <table>
+    <tr><th>Finding</th><th>Action</th><th>Owner</th><th>Priority</th></tr>
+    <tr><td>Outdated email filter rules allowed phishing delivery</td><td>Implement monthly email filter rule review and threat intel feed integration</td><td>Email Security Team</td><td><span class='priority-high'>High</span></td></tr><tr><td>EDR alert threshold too high, missed malicious PowerShell execution</td><td>Re-tune EDR detection rules and validate against MITRE ATT&CK T1059 using atomic tests</td><td>Detection Engineering</td><td><span class='priority-high'>High</span></td></tr><tr><td>86-minute SLA breach before triage due to alert backlog</td><td>Implement automated SLA breach escalation and review analyst staffing vs. alert volume</td><td>SOC Manager</td><td><span class='priority-medium'>Medium</span></td></tr>
+  </table>
+</body>
+</html>

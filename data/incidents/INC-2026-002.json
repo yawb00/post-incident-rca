@@ -1,0 +1,40 @@
+{
+  "incident_id": "INC-2026-002",
+  "severity": "Medium",
+  "classification": "Exploitation of unpatched public-facing application",
+  "logs": [
+    {"timestamp": "2026-07-20T02:03:11Z", "source": "WAF", "event": "Suspicious request", "detail": "Malformed request pattern matching known CVE-2026-XXXX exploit attempt logged but not blocked (WAF rule not yet deployed)."},
+    {"timestamp": "2026-07-20T02:03:14Z", "source": "Web Server", "event": "Exploit success", "detail": "Remote code execution achieved on unpatched application server. Patch had been available for 47 days."},
+    {"timestamp": "2026-07-20T02:04:02Z", "source": "EDR", "event": "Reverse shell", "detail": "Outbound reverse shell connection established from web server to external IP."},
+    {"timestamp": "2026-07-20T02:15:47Z", "source": "SIEM", "event": "Correlation alert", "detail": "High-priority alert generated for anomalous outbound connection from server subnet."},
+    {"timestamp": "2026-07-20T02:19:30Z", "source": "SOC Analyst", "event": "Manual triage", "detail": "Alert reviewed within SLA, immediately escalated to IR due to high-priority classification."},
+    {"timestamp": "2026-07-20T02:35:00Z", "source": "IR Team", "event": "Containment", "detail": "Web server isolated from network."},
+    {"timestamp": "2026-07-20T03:10:00Z", "source": "IR Team", "event": "Eradication", "detail": "Webshell removed, server patched and hardened."},
+    {"timestamp": "2026-07-20T04:00:00Z", "source": "IR Team", "event": "Recovery", "detail": "Server validated and returned to production behind updated WAF rule."}
+  ],
+  "root_cause_analysis": {
+    "Initial Access": {
+      "what_happened": "Attacker exploited a known, unpatched vulnerability on a public-facing server.",
+      "chain": [
+        "Why was the server exploitable? -> A publicly known vulnerability (CVE) was left unpatched.",
+        "Why was it unpatched? -> The patch had been available for 47 days without being applied.",
+        "Why wasn't it applied in that window? -> No enforced SLA for critical patch deployment.",
+        "Why is there no enforced SLA? -> Patch management is manual and not prioritized by CVSS/exploitability.",
+        "Root cause: Lack of an enforced, risk-based patch management SLA."
+      ]
+    },
+    "Detection Gap": {
+      "what_happened": "WAF logged the exploit attempt but did not block it.",
+      "chain": [
+        "Why wasn't the request blocked? -> No WAF rule existed yet for this specific CVE pattern.",
+        "Why was there no rule? -> WAF rule deployment lagged behind vulnerability disclosure.",
+        "Why did it lag? -> No process to fast-track virtual patching via WAF when a real patch is delayed.",
+        "Root cause: No virtual-patching process to cover the gap between vulnerability disclosure and actual patch deployment."
+      ]
+    }
+  },
+  "corrective_actions": [
+    {"finding": "47-day unpatched critical vulnerability exploited", "action": "Implement enforced patch SLA tied to CVSS score, with automated tracking", "owner": "Vulnerability Management", "priority": "High", "status": "Open"},
+    {"finding": "No WAF rule to virtually patch known CVE during exposure window", "action": "Establish a virtual-patching process to deploy WAF/IPS rules within 24-48 hours of CVE disclosure", "owner": "Network Security Team", "priority": "High", "status": "Open"}
+  ]
+}
